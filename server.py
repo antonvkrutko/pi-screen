@@ -46,12 +46,14 @@ class MeetingCallAdapter(CallAdapter):
             meeting_info_raw = cast(dict, json.loads(data))
             title = meeting_info_raw.get("title")
             time_info = meeting_info_raw.get("time_info")
+            time_token = meeting_info_raw.get("time_token")
             is_free = meeting_info_raw.get("is_free")
-            if title is not None and time_info is not None and is_free is not None:
+            if title is not None and time_info is not None and time_token is not None and is_free is not None:
                 self.callback(
                     MeetingInfo(
                         title=title,
                         time_info=time_info,
+                        time_token=time_token,
                         is_free=is_free
                     )
                 )

@@ -59,7 +59,7 @@ class ScreenOutput(Output):
         meeting_info = cast(MeetingInfo, self.meeting_info)
 
         if meeting_info.is_free:
-            background_color = ImageColor.getrgb("Gold")
+            background_color = ImageColor.getrgb("Orange")
         else:
             background_color = ImageColor.getrgb("Crimson")
         self.draw_background_internal(
@@ -67,8 +67,39 @@ class ScreenOutput(Output):
             color=background_color
         )
 
-        draw = ImageDraw(image)
-        draw.text((0, 0), self.meeting_info.title, font=self.font)
+        y_position = 0
+        # Drawing meeting title
+        self.meeting_info_title_offset = self.draw_text_internal(
+            image=image,
+            xy=(0, y_position),
+            font=self.font.font_variant(size=30),
+            padding=(10, 10),
+            text=meeting_info.title,
+            offset=self.meeting_info_title_offset
+        )
+        y_position = self.font.getbbox(text=meeting_info.title)[3]
+
+        # Drawing time message
+        y_position += 10
+        self.meeting_info_time_info_offset = self.draw_text_internal(
+            image=image,
+            xy=(0, y_position),
+            font=self.font,
+            padding=(10, 10),
+            text=meeting_info.time_info,
+            offset=self.meeting_info_time_info_offset
+        )
+        y_position += self.font.getbbox(text=meeting_info.time_info)[3]
+
+        # Drawing time token
+        (l, t, r, b) = self.font.getbbox(text=str(meeting_info.time_token))
+        y_position += 20
+        self.draw_text_internal(
+            image=image,
+            xy=(round(image.width / 2 - (r - l)), y_position),
+            font=self.font.font_variant(size=44),
+            text=str(meeting_info.time_token),
+        )
 
     def draw_free_internal(self, image: Image):
         self.draw_background_internal(
@@ -78,29 +109,48 @@ class ScreenOutput(Output):
         if self.message is not None:
             font = self.font.font_variant(size=36)
             (l, t, r, b) = font.getbbox(self.message)
-            padding = 10
-            image_for_text = PIL.Image.new(
-                mode="RGBA",
-                size=(image.width - padding * 2, b),
-            )
-            text_draw = ImageDraw(image_for_text)
-            text_draw.text((self.message_offset, 0), text=self.message, font=font, anchor="lt")
-
-            if r - l > image_for_text.width:
-                self.message_offset -= 3
-                if abs(self.message_offset) >= r - l:
-                    self.message_offset = image_for_text.width
-
-            image.paste(
-                im=image_for_text,
-                box=(padding, round(image.height / 2 - (b - t) / 2)),
-                mask=image_for_text
+            self.message_offset = self.draw_text_internal(
+                image=image,
+                xy=(0, round(image.height / 2 - (b - t) / 2)),
+                font=font,
+                padding=(10, 0),
+                text=self.message,
+                offset=self.message_offset
             )
 
-    def draw_background_internal(self, image: Image, color: ImageColor):
+    @staticmethod
+    def draw_background_internal(image: Image, color: ImageColor):
         draw = ImageDraw(image)
         draw.rounded_rectangle(
             xy=(0, 0, image.width, image.height),
             radius=20,
             fill=color,
         )
+
+    @staticmethod
+    def draw_text_internal(image: Image, xy: tuple[int, int], font: ImageFont, text: str,
+                           padding: tuple[int, int] or None = None,
+                           offset: int = None) -> int:
+        if padding is None:
+            padding = (0, 0)
+        if offset is None:
+            offset = 0
+        (l, t, r, b) = font.getbbox(text)
+        image_for_text = PIL.Image.new(
+            mode="RGBA",
+            size=(image.width - padding[0] * 2, b + padding[1] * 2),
+        )
+        text_draw = ImageDraw(image_for_text)
+        text_draw.text((offset, 0), text=text, font=font, anchor="lt")
+
+        if r - l > image_for_text.width:
+            offset -= 3
+            if abs(offset) >= r - l:
+                offset = image_for_text.width
+
+        image.paste(
+            im=image_for_text,
+            box=(xy[0] + padding[0], xy[1] + padding[1]),
+            mask=image_for_text
+        )
+        return offset
