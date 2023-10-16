@@ -14,9 +14,11 @@ class OutputInteractor(Callbacks):
         self.output = output
 
     def meeting(self, info: MeetingInfo):
+        print(info)
         self.output.set_meeting_info(info=info)
 
     def free(self, message: str):
+        print(message)
         self.output.set_meeting_free(message=message)
 
 
